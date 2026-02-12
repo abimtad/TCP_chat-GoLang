@@ -47,6 +47,13 @@ func (s *server) newClient(conn net.Conn) *client {
 }
 
 func (s *server) nick(c *client, args []string) {
+	if len(args) < 2 {
+		c.msg("nick is required. usage: /nick NAME")
+		return
+	}
+
+	c.nick = args[1]
+	c.msg(fmt.Sprintf("all right, I will call you %s", c.nick))
 }
 
 func (s *server) join(c *client, args []string) {
@@ -85,6 +92,13 @@ func (s *server) listRooms(c *client) {
 }
 
 func (s *server) msg(c *client, args []string) {
+	if len(args) < 2 {
+		c.msg("message is required, usage: /msg MSG")
+		return
+	}
+
+	msg := strings.Join(args[1:], " ")
+	c.room.broadcast(c, c.nick+": "+msg)
 }
 
 func (s *server) quit(c *client) {
