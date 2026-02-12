@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"strings"
 )
 
 type server struct {
@@ -48,13 +50,50 @@ func (s *server) nick(c *client, args []string) {
 }
 
 func (s *server) join(c *client, args []string) {
+	if len(args) < 2 {
+		c.msg("room name is required. usage: /join ROOM_NAME")
+		return
+	}
+
+	roomName := args[1]
+
+	r, ok := s.rooms[roomName]
+	if !ok {
+		r = &room{
+			name:    roomName,
+			members: make(map[net.Addr]*client),
+		}
+		s.rooms[roomName] = r
+	}
+	r.members[c.conn.RemoteAddr()] = c
+
+	s.quitCurrentRoom(c)
+	c.room = r
+
+	r.broadcast(c, fmt.Sprintf("%s joined the room", c.nick))
+
+	c.msg(fmt.Sprintf("welcome to %s", roomName))
 }
 
 func (s *server) listRooms(c *client) {
+	var rooms []string
+	for name := range s.rooms {
+		rooms = append(rooms, name)
+	}
+
+	c.msg(fmt.Sprintf("available rooms: %s", strings.Join(rooms, ", ")))
 }
 
 func (s *server) msg(c *client, args []string) {
 }
 
 func (s *server) quit(c *client) {
+}
+
+func (s *server) quitCurrentRoom(c *client) {
+	if c.room != nil {
+		oldRoom := s.rooms[c.room.name]
+		delete(s.rooms[c.room.name].members, c.conn.RemoteAddr())
+		oldRoom.broadcast(c, fmt.Sprintf("%s has left the room", c.nick))
+	}
 }
