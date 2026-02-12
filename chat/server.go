@@ -102,6 +102,12 @@ func (s *server) msg(c *client, args []string) {
 }
 
 func (s *server) quit(c *client) {
+	log.Printf("client has left the chat: %s", c.conn.RemoteAddr().String())
+
+	s.quitCurrentRoom(c)
+
+	c.msg("sad to see you go =(")
+	c.conn.Close()
 }
 
 func (s *server) quitCurrentRoom(c *client) {
